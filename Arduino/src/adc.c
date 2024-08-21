@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <stdint.h>
+#include "const.h"
 
 void adc_init() {
     // Set the ADC to use 5V as the reference voltage and left adjust the result (and use only ADCH)

@@ -1,11 +1,9 @@
 #include "uart.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "const.h"
 #include <stdio.h>
 #include <stdbool.h>
-
-#define BAUD 9600
-#define MYUBRR F_CPU/16/BAUD-1
 
 void usart_init(uint16_t ubrr);
 char usart_getchar( void );
@@ -36,6 +34,21 @@ char usart_getchar(void) {
     // Return the data
     return UDR0;
 }
+
+char* usart_getstring(void) {
+    static char buffer[64];
+    char *ptr = buffer;
+    char c;
+
+    while ((c = usart_getchar()) != '\n') {
+        if (c == '\r') break;
+        *ptr++ = c;
+    }
+    *ptr = '\0';
+    return buffer;
+}
+
+
 unsigned char usart_kbhit(void) {
     //return nonzero if char waiting polled version
     unsigned char b;

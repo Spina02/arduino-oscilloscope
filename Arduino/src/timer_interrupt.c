@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "const.h"
 
 void timer1_init(uint16_t freq) {
     // Calculate the value for the Output Compare Register
@@ -16,8 +17,4 @@ void timer1_init(uint16_t freq) {
 
     // Enable Output Compare A Match Interrupt
     TIMSK1 |= (1 << OCIE1A);
-}
-
-ISR(TIMER1_COMPA_vect) {
-    // TODO: ADC sampling and data handling
 }
