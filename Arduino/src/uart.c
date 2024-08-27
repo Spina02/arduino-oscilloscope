@@ -1,14 +1,15 @@
 #include "uart.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "const.h"
+#include "globals.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 void usart_init(uint16_t ubrr);
 char usart_getchar( void );
 void usart_putchar( char data );
-void usart_pstr (char *s);
+void usart_putstr (char *data);
 unsigned char usart_kbhit(void);
 int usart_putchar_printf(char var, FILE *stream);
 
@@ -48,7 +49,6 @@ char* usart_getstring(void) {
     return buffer;
 }
 
-
 unsigned char usart_kbhit(void) {
     //return nonzero if char waiting polled version
     unsigned char b;
@@ -56,11 +56,11 @@ unsigned char usart_kbhit(void) {
     if(UCSR0A & (1<<RXC0)) b=1;
     return b;
 }
-void usart_pstr(char *s) {
+void usart_putstr(char *data) {
     // loop through entire string
-    while (*s) { 
-        usart_putchar(*s);
-        s++;
+    while (*data) { 
+        usart_putchar(*data); // send the character
+        data++;
     }
 }
  

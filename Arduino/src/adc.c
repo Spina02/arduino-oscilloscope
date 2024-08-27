@@ -1,6 +1,6 @@
 #include <avr/io.h>
 #include <stdint.h>
-#include "const.h"
+#include "globals.h"
 
 void adc_init() {
     // Set the ADC to use 5V as the reference voltage and left adjust the result (and use only ADCH)
@@ -11,9 +11,9 @@ void adc_init() {
     ADCSRA |= (1 << ADEN);
 }
 
-uint16_t adc_read(uint8_t channel) {
+uint16_t adc_read(uint8_t channels) {
     // Select the channel
-    ADMUX = (ADMUX & 0xF0) | (channel & 0x0F);
+    ADMUX = (ADMUX & 0xF0) | (channels & 0x0F);
     // Start the conversion
     ADCSRA |= (1 << ADSC);
     // Wait for the conversion to complete
