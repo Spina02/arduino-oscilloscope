@@ -1,6 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "const.h"
+#include "globals.h"
 
 void timer1_init(uint16_t freq) {
     // Calculate the value for the Output Compare Register
