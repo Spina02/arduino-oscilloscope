@@ -13,6 +13,10 @@
 #include "src/buffer.h"
 #include "src/trigger.h"
 #include <string.h>
+#include "src/adc.h"
+#include "src/buffer.h"
+#include "src/trigger.h"
+#include <string.h>
 
 /*
     Possibility of configuring (from PC)
