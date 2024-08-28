@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <limits.h>
 
 void process_command(char* command) {
     cli();
@@ -39,7 +40,9 @@ void process_command(char* command) {
     else if (strcmp(command, "c") == 0 || strcmp(command, "channel") == 0) {
         printf("Enter channel: \n");
         channels = atoi(usart_getstring());
-        printf("Channel set to %d\n", channels);
+        printf("Channel set to ");
+        binprintf(channels);
+        printf("\n");
     } 
     else if (strcmp(command, "m") == 0 || strcmp(command, "mode") == 0) {
         printf("Enter mode (c: continuous, b: buffered): \n");
@@ -49,9 +52,9 @@ void process_command(char* command) {
         else printf("unknown mode '%c', type 'c' for continuous mode, 'b' for buffered mode\n", mode);
     } 
     else if (strcmp(command, "t") == 0 || strcmp(command, "trigger") == 0) {
-        printf("Set trigger: \n");
-        trigger = atoi(usart_getstring());
-        printf("Trigger set to %d\n", trigger);
+        wait_for_trigger = !wait_for_trigger;
+        printf("%s\n", wait_for_trigger ? "Enabled trigger mode\n" : "Disabled trigger mode\n");
+        first_iter = true;
     } 
     else {
         printf("Unknown command: %s\n", command);
@@ -62,30 +65,35 @@ void process_command(char* command) {
 
 int handle_timer_interrupt() {
     cli();
-    if (!trigger) {
+    if (wait_for_trigger) {
         interrupts &= ~(1 << TIMINT);
         if (first_iter) printf("Waiting for Trigger\n");
         first_iter = false;
-        trigger = is_triggered(curr_samples, last_samples, channels);
-        for(int i = 0; i < CHANNELS; i++){
-          last_samples[i] = curr_samples[i];
+        for (int i = 0; i < CHANNELS; i++) {
+            if (channels & (1 << i)) {
+                last_samples[i] = curr_samples[i];
+                curr_samples[i] = adc_read(i);
+            }
         }
-        if (trigger){
-          printf("Triggered!\n");
-        }
+        wait_for_trigger = !is_triggered(curr_samples, last_samples, channels);
         sei();
         return 0;
     }
     if (running && (mode == 'c')) {
-        uint16_t adc_value = adc_read(channels);
         for (int i = 0; i < CHANNELS; i++) {
             if (channels & (1 << i)) {
-                curr_samples[i] = adc_value;
+                curr_samples[i] = adc_read(i);
                 // send the sample to the PC
-                printf("channel %d : %d\n", i, curr_samples[i]);
+                printf("channel %d : %d \t", i, curr_samples[i]);
             }
         }
+        printf("\n");
     } else if (running && (mode == 'b')) {
+        for (int i = 0; i < CHANNELS; i++) {
+            if (channels & (1 << i)) {
+                curr_samples[i] = adc_read(i);
+            }
+        }
         add_buf(curr_samples);
     }
     sei();

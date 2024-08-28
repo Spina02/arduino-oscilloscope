@@ -3,11 +3,14 @@
 #include <stdint.h>
 #include "trigger.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 bool is_triggered(uint8_t* curr_samples, uint8_t* last_samples, uint8_t channels) {
     for (int i = 0; i < CHANNELS; i++) {
         if (channels & (1 << i)) { // if the channel is active
-            if (abs(curr_samples[i] - last_samples[i]) > TRIGGER_THRESHOLD) {
+            uint8_t diff = abs(curr_samples[i] - last_samples[i]);
+            if (diff > TRIGGER_THRESHOLD) {
+                printf("Triggered on channel %d\n", i);
                 return true;
             }
         }

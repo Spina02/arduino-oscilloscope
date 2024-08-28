@@ -1,11 +1,11 @@
 #include "globals.h"
 
 // oscilloscope
-uint16_t freq = 1000;        // default frequency
-char interrupts = 0;         // 0b00000000
-char channels = 0b10001001;  // shift register for the channel
-char mode = 'c';             // default mode
-bool trigger = true;         // default trigger
+uint16_t freq = 100;            // default frequency
+char interrupts = 0;            // 0b00000000
+char channels = 0b00000001;     // shift register for channels (default channel 0)
+char mode = 'c';                // default mode
+bool wait_for_trigger = false;  // default trigger
 
 // buffer
 uint8_t idx = 0;                                    // index for the buffer

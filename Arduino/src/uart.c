@@ -77,3 +77,12 @@ void printf_init(void){
   // fire up the usart
   usart_init(MYUBRR);
 }
+
+void binprintf(char num)
+{
+    unsigned char mask = 1 << ((sizeof(char) << 3) - 1);
+    while (mask) {
+        printf("%d", (num & mask ? 1 : 0));
+        mask >>= 1;
+    }
+}

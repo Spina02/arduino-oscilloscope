@@ -6,3 +6,4 @@ char* usart_getstring(void);
 char usart_getchar(void);
 void usart_putstr(char* data);
 void usart_putchar(char data);
+void binprintf(char num);

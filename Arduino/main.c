@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "src/globals.h"
-// #include "src/utils.h"
+#include "src/utils.h"
 #include "src/uart.h"
 #include "src/timer_interrupt.h"
 #include <util/delay.h>
@@ -32,97 +32,6 @@
     on the UART)
 */
 
-void process_command(char* command) {
-    cli();
-    freq = 1000;
-    printf("Processing command: %s\n", command); // Debugging statement
-    if (strcmp(command, "h") == 0 || strcmp(command, "help") == 0) {
-        printf("Commands:\n");
-        //start and stop
-        printf("start (s): start the oscilloscope\n");
-        printf("stop (s): stop the oscilloscope\n");
-        printf("freq (f): set the sampling frequency\n");
-        printf("channel (c): set the channel to sample\n");
-        printf("mode (m): set the mode of operation\n");
-        printf("trigger (t): set the trigger condition\n");
-    } 
-    else if ((strcmp(command, "s") == 0) | (strcmp(command, "start") == 0) | (strcmp(command, "stop") == 0)) {
-        running = !running;
-        printf("Oscilloscope %s\n", running ? "started" : "stopped");
-    }
-    else if (strcmp(command, "f") == 0 || strcmp(command, "freq") == 0) {
-        printf("Enter frequency (Hz): \n");
-        //char* c_freq = usart_getstring();
-        freq = atoi(usart_getstring());//c_freq);
-        printf("Sampling frequency set to %d Hz\n", freq);
-        timer1_init(freq);
-    } 
-    else if (strcmp(command, "c") == 0 || strcmp(command, "channel") == 0) {
-        printf("Enter channel: \n");
-        channels = atoi(usart_getstring());
-        printf("Channel set to %d\n", channels);
-    } 
-    else if (strcmp(command, "m") == 0 || strcmp(command, "mode") == 0) {
-        printf("Enter mode (c: continuous, b: buffered): \n");
-        mode =  *((char*) usart_getstring());
-        if ((mode == 'c') | (mode == 'b'))
-            printf("Mode set to %s\n", mode == 'c' ? "'continuous'" : "'buffered'");
-        else printf("unknown mode '%c', type 'c' for continuous mode, 'b' for buffered mode\n", mode);
-    } 
-    else if (strcmp(command, "t") == 0 || strcmp(command, "trigger") == 0) {
-        printf("Set trigger: \n");
-        trigger = atoi(usart_getstring());
-        printf("Trigger set to %d\n", trigger);
-    } 
-    else {
-        printf("Unknown command: %s\n", command);
-    }
-    interrupts &= ~(1 << RXINT);
-    sei();
-}
-
-int handle_timer_interrupt() {
-    cli();
-    if (!trigger) {
-        interrupts &= ~(1 << TIMINT);
-        if (first_iter) printf("Waiting for Trigger\n");
-        first_iter = false;
-        trigger = is_triggered(curr_samples, last_samples, channels);
-        for(int i = 0; i < CHANNELS; i++){
-          last_samples[i] = curr_samples[i];
-        }
-        if (trigger){
-          printf("Triggered!\n");
-        }
-        sei();
-        return 0;
-    }
-    if (running && (mode == 'c')) {
-        uint16_t adc_value = adc_read(channels);
-        for (int i = 0; i < CHANNELS; i++) {
-            if (channels & (1 << i)) {
-                curr_samples[i] = adc_value;
-                // send the sample to the PC
-                printf("channel %d : %d\n", i, curr_samples[i]);
-            }
-        }
-    } else if (running && (mode == 'b')) {
-        add_buf(curr_samples);
-    }
-    sei();
-    return 1;
-}
-
-void initialize_system(uint16_t freq) {
-    adc_init();
-    printf_init();
-    timer1_init(freq);
-    sei();
-
-    printf("Oscilloscope ready\n");
-    printf("Type 'h' for help\n");
-}
-
 // Timer interrupt
 ISR(TIMER1_COMPA_vect){
   interrupts |= 1 << TIMINT;
@@ -138,20 +47,24 @@ int main(int argc, char** argv) {
     initialize_system(freq);
 
     while (1) {
+        // Received message from UART
+        if (interrupts & (1 << RXINT)) {
+            process_command(usart_getstring());
+        } 
         // Check if the timer interrupt has occurred
-        if (interrupts & (1 << TIMINT)) {
+        else if (interrupts & (1 << TIMINT)) {
             // Check if the trigger condition is met
             int res = handle_timer_interrupt();
             if (!res) continue;
         } 
-        // Received message from UART
-        else if (interrupts & (1 << RXINT)) {
-            process_command(usart_getstring());
-        } 
-        else { // Sleep mode
-            printf("Sleeping...\n");
+        // Sleep if no interrupts
+        else {
+            if (first_iter)
+                printf("Sleeping...\n");
+            first_iter = false;
             set_sleep_mode(SLEEP_MODE_IDLE);
             sleep_mode();
         }
+        _delay_ms(50); // delay for readability
     }
 }
