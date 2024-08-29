@@ -8,15 +8,11 @@
 #include "src/utils.h"
 #include "src/uart.h"
 #include "src/timer_interrupt.h"
+#include "src/adc.h"
+#include "src/buffer.h"
+#include "src/trigger.h"
+#include <string.h>
 #include <util/delay.h>
-#include "src/adc.h"
-#include "src/buffer.h"
-#include "src/trigger.h"
-#include <string.h>
-#include "src/adc.h"
-#include "src/buffer.h"
-#include "src/trigger.h"
-#include <string.h>
 
 /*
     Possibility of configuring (from PC)

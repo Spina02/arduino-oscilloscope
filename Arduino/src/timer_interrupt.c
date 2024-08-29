@@ -18,3 +18,4 @@ void timer1_init(uint16_t freq) {
     // Enable Output Compare A Match Interrupt
     TIMSK1 |= (1 << OCIE1A);
 }
+
