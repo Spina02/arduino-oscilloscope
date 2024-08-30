@@ -28,4 +28,5 @@ void send_buf() {
     }
     printf("Buffer sent\n\n");
     idx = 0;
+    wait_for_trigger = true;
 }

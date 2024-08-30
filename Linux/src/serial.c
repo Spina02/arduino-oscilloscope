@@ -55,7 +55,9 @@ int set_attributes(int fd, int speed, int parity, bool blocking) {
     // set attributes
     tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;   // 8-bit chars 
     tty.c_cflag |= parity;                        // enable parity
-    tty.c_cflag &= ~(PARENB | PARODD);            // no odd parity
+    tty.c_cflag &= ~CSTOPB;           // 1 stop bit
+    tty.c_cflag &= ~CSIZE;
+    tty.c_cflag |= CS8;               // 8 data bits
 
     // set blocking mode
     tty.c_cc[VMIN] = blocking ? 1 : 0;

@@ -14,21 +14,27 @@
 
 void process_command(char* command) {
     cli();
-    freq = 1000;
-    printf("Processing command: %s\n", command); // Debugging statement
-    if (strcmp(command, "h") == 0 || strcmp(command, "help") == 0) {
-        printf("Commands:\n");
-        //start and stop
-        printf("start (s): start the oscilloscope\n");
-        printf("stop (s): stop the oscilloscope\n");
-        printf("freq (f): set the sampling frequency\n");
-        printf("channel (c): set the channel to sample\n");
-        printf("mode (m): set the mode of operation\n");
-        printf("trigger (t): set the trigger condition\n");
+    if (strcmp(command, "") == 0) {
+        interrupts &= ~(1 << RXINT);
+        sei();
+        return;
+    }
+    if (strcmp(command, "exit") == 0) {
+        printf("Exiting\n");
     } 
+    else if (strcmp(command, "h") == 0 || strcmp(command, "help") == 0) {
+    printf("clear\n");
+    printf("Commands:\n");
+    printf(" (s) %-10s: %s\n", "start", "start the oscilloscope");
+    printf(" (s) %-10s: %s\n", "stop", "stop the oscilloscope");
+    printf(" (f) %-10s: %s\n", "freq", "set the sampling frequency");
+    printf(" (c) %-10s: %s\n", "channel", "set the channel to sample");
+    printf(" (m) %-10s: %s\n", "mode", "set the mode of operation");
+    printf(" (t) %-10s: %s\n", "trigger", "enable trigger condition");
+}
     else if ((strcmp(command, "s") == 0) | (strcmp(command, "start") == 0) | (strcmp(command, "stop") == 0)) {
         running = !running;
-        printf("Oscilloscope %s\n", running ? "started" : "stopped");
+        printf("Oscilloscope %s%s\n", running ? "started" : "stopped", (running && wait_for_trigger) ? " (waiting for trigger)" : "");
     }
     else if (strcmp(command, "f") == 0 || strcmp(command, "freq") == 0) {
         printf("Enter frequency (Hz): \n");
@@ -65,10 +71,12 @@ void process_command(char* command) {
 
 int handle_timer_interrupt() {
     cli();
-    if (wait_for_trigger) {
+    if (running && wait_for_trigger) {
         interrupts &= ~(1 << TIMINT);
-        if (first_iter) printf("Waiting for Trigger\n");
-        first_iter = false;
+        if (running) {
+            if (first_iter) printf("Waiting for Trigger\n");
+            first_iter = false;
+        }
         for (int i = 0; i < CHANNELS; i++) {
             if (channels & (1 << i)) {
                 last_samples[i] = curr_samples[i];
@@ -104,8 +112,12 @@ void initialize_system(uint16_t freq) {
     adc_init();
     printf_init();
     timer1_init(freq);
+    // initialize the samples with the first read
+    for (int i = 0; i < CHANNELS; i++) {
+        curr_samples[i] = adc_read(i);
+        last_samples[i] = curr_samples[i];
+    }
     sei();
 
-    printf("Oscilloscope ready\n");
-    printf("Type 'h' for help\n");
+    printf("Oscilloscope ready\nType 'h' for help\n");
 }

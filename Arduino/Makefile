@@ -23,7 +23,4 @@ HEADERS+=./src/globals.h
 
 
 # the file below contains the actual rules
-
-# !!!!!!!!!!!!!!!! MODIFY HERE !!!!!!!!!!!!!!!! 
-
 include ./src/avr.mk
