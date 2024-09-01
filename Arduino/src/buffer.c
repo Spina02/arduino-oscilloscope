@@ -19,14 +19,19 @@ void add_buf(uint8_t* samples) {
 void send_buf() {
     // Send remaining samples via UART
     for (int i = 0; i < idx; i++) {
+        printf("DATA:");
         for (int j = 0; j < CHANNELS; j++) {
             if (channels & (1 << j)) {
-                printf("channel %d : %d \t", j, buffer[i][j]);
+                printf("%d ", buffer[i][j]);
+            }
+            else {
+                printf("-1 ");
             }
         }
         printf("\n");
     }
-    printf("Buffer sent\n\n");
+    printf("CMD:Buffer sent\n\n");
     idx = 0;
-    wait_for_trigger = true;
+    if (trigger)
+        wait_for_trigger = true;
 }

@@ -26,19 +26,23 @@ ISR(USART0_RX_vect) {
 
 int main(int argc, char** argv) {
     // Initialize ADC, UART and timer
-    initialize_system(freq);
+    if (initialize_system(freq) < 0) {
+        printf("CMD:Error initializing system\n");
+        return -1;
+    };
 
     while (1) {
         // Check if there are any interrupts to handle
         if (interrupts & (1 << RXINT)) {
-            process_command(usart_getstring());
+            if (process_command(usart_getstring())<0) 
+                continue;
         } else if (interrupts & (1 << TIMINT)) {
             int res = handle_timer_interrupt();
-            if (!res) continue;
+            if (res<0) continue;
         } else {
             // Enter sleep mode if no interrupts
             if (first_iter) {
-                printf("Sleeping...\n");
+                printf("CMD:Sleeping...\n");
                 first_iter = false;
             }
             set_sleep_mode(SLEEP_MODE_IDLE);

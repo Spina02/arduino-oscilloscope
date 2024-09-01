@@ -13,11 +13,12 @@
 
 #define TRIGGER_THRESHOLD 100 // threshold for the trigger
 
-extern uint16_t freq;        // default frequency
-extern char interrupts;      // 0b00000000
-extern char channels;        // shift register for the channel
-extern char mode;            // default mode
-extern bool wait_for_trigger;         // default trigger
+extern uint16_t freq;         // default frequency
+extern char interrupts;       // 0b00000000
+extern char channels;         // shift register for the channel
+extern char mode;             // default mode
+extern bool wait_for_trigger; // default trigger
+extern bool trigger;          // trigger flag
 
 extern uint8_t idx;                                 // index for the buffer
 extern uint8_t buffer[BUFFER_SIZE][CHANNELS]; // buffer for the samples
@@ -26,3 +27,6 @@ extern uint8_t last_samples[CHANNELS];              // last samples
 
 extern bool running;         // running flag
 extern bool first_iter;      // first iteration flag
+
+extern int data_size;   // size of the data buffer
+extern char* data;             // data buffer

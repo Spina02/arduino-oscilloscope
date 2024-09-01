@@ -6,6 +6,7 @@ char interrupts = 0;            // 0b00000000
 char channels = 0b00000001;     // shift register for channels (default channel 0)
 char mode = 'c';                // default mode
 bool wait_for_trigger = false;  // default trigger
+bool trigger = false;           // trigger flag
 
 // buffer
 uint8_t idx = 0;                                    // index for the buffer
@@ -16,3 +17,6 @@ uint8_t last_samples[CHANNELS] = {0};               // last samples
 // genral
 bool running = false;         // running flag
 bool first_iter = true;
+
+int data_size = CHANNELS*(6*sizeof(char)+1)+6; // 6 chars for "DATA:" and 1 for null terminator
+char* data = 0;             // data buffer
