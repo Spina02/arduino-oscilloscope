@@ -4,5 +4,6 @@
         "*.md": "markdown",
         "types.h": "c",
         "select.h": "c"
-    }
+    },
+    "makefile.configureOnOpen": true
 }

@@ -38,7 +38,7 @@ $(LINUX_TARGET): $(LINUX_OBJS)
 # Regola per pulire i file generati
 .PHONY: clean_linux
 clean_linux:
-	rm -f $(LINUX_OBJS) $(LINUX_BINS) *~ *.o /Linux/data.txt
+	rm -f $(LINUX_OBJS) $(LINUX_BINS) *~ *.o ./data.txt
 
 # Regola per eseguire il programma
 .PHONY: run
