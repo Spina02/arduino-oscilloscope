@@ -29,7 +29,7 @@ int process_command(char* command) {
     printf("CMD:(s) %-10s: %s\n", "stop", "stop the oscilloscope");
     printf("CMD:(f) %-10s: %s\n", "freq", "set the sampling frequency");
     printf("CMD:(c) %-10s: %s\n", "channel", "set the channel to sample");
-    printf("CMD:(m) %-10s: %s\n", "mode", "set the mode of operation");
+    printf("CMD:(m) %-10s: %s\n", "mode", "set the operation mode (continuous/buffered)");
     printf("CMD:(t) %-10s: %s\n", "trigger", "enable trigger condition");
 }
     else if ((strcmp(command, "s") == 0) | (strcmp(command, "start") == 0) | (strcmp(command, "stop") == 0)) {
@@ -44,8 +44,17 @@ int process_command(char* command) {
         timer1_init(freq);
     } 
     else if (strcmp(command, "c") == 0 || strcmp(command, "channel") == 0) {
-        printf("CMD:Enter channel: \n");
-        channels = atoi(usart_getstring());
+        printf("CMD:Enter channel: (e.g. 00000011 for channels 0 and 1)\n");
+
+        char* ch = usart_getstring();
+        // convert the string (e.g. 10110011) to a bit mask (e.g. 0b10110011)
+        channels = 0;
+        for (int i = 0; i < strlen(ch); i++) {
+            if (ch[i] == '1') {
+                channels |= 1 << (strlen(ch) - i - 1);
+            }
+        }
+
         printf("CMD:Channel set to ");
         binprintf(channels);
         printf("\n");
@@ -56,6 +65,7 @@ int process_command(char* command) {
         if ((mode == 'c') | (mode == 'b'))
             printf("CMD:Mode set to %s\n", mode == 'c' ? "'continuous'" : "'buffered'");
         else printf("CMD:unknown mode '%c', type 'c' for continuous mode, 'b' for buffered mode\n", mode);
+        if (mode == 'c') trigger = false;
     } 
     else if (strcmp(command, "t") == 0 || strcmp(command, "trigger") == 0) {
         trigger = !trigger;
@@ -96,9 +106,9 @@ int handle_timer_interrupt() {
             char temp[20]; // Temporary buffer for each sample string
             if (channels & (1 << i)) {
                 curr_samples[i] = adc_read(i);
-                snprintf(temp, sizeof(temp), " %d", curr_samples[i]);
+                snprintf(temp, sizeof(temp), "%d ", curr_samples[i]);
             } else {
-                snprintf(temp, sizeof(temp), " -1");
+                snprintf(temp, sizeof(temp), "-1 ");
             }
             strncat(data, temp, data_size - strlen(data) - 1);
         }
@@ -141,8 +151,7 @@ int initialize_system(uint16_t freq) {
     sei();
 
     printf("GO\n"); // Signal the host that the oscilloscope is ready
-    printf("GO\n"); // double signal to ensure the host receives it
-    printf("%s\n", data);
+    printf("GO\n"); // Signal the host that the oscilloscope is ready
     printf("CMD:Oscilloscope ready\n");
     printf("CMD:Type 'h' for help\n");
     return 0;

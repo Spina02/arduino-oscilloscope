@@ -1,26 +1,33 @@
-BINS=main.elf 
+AVR_BINS=main.elf 
 
 # put here the additional .o files you want to generate
 # one .c file for each .o should be present
 
-OBJS=./src/uart.o
-OBJS+=./src/timer_interrupt.o
-OBJS+=./src/adc.o
-OBJS+=./src/trigger.o
-OBJS+=./src/buffer.o
-OBJS+=./src/utils.o
-OBJS+=./src/globals.o
+AVR_OBJS=./src/uart.o
+AVR_OBJS+=./src/timer_interrupt.o
+AVR_OBJS+=./src/adc.o
+AVR_OBJS+=./src/trigger.o
+AVR_OBJS+=./src/buffer.o
+AVR_OBJS+=./src/utils.o
+AVR_OBJS+=./src/globals.o
+AVR_OBJS+=./main.o
 
 # put here the additional header files needed for compilation
-HEADERS=./src/uart.h
-HEADERS+=./src/timer_interrupt.h
-HEADERS+=./src/adc.h
-HEADERS+=./src/const.h
-HEADERS+=./src/trigger.h 
-HEADERS+=./src/buffer.h
-HEADERS+=./src/utils.h
-HEADERS+=./src/globals.h
+AVR_HEADERS=./src/uart.h
+AVR_HEADERS+=./src/timer_interrupt.h
+AVR_HEADERS+=./src/adc.h
+AVR_HEADERS+=./src/const.h
+AVR_HEADERS+=./src/trigger.h 
+AVR_HEADERS+=./src/buffer.h
+AVR_HEADERS+=./src/utils.h
+AVR_HEADERS+=./src/globals.h
 
 
 # the file below contains the actual rules
 include ./src/avr.mk
+
+.PHONY: all build clean
+all: build_avr main.elf
+
+build: build_avr main.elf
+clean: clean_avr

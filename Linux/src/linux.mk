@@ -1,40 +1,46 @@
+LINUX_CC = gcc
+LINUX_CXX = g++
+
 # Opzioni di compilazione
-CFLAGS = -Wall -O3
-CXXFLAGS = -Wall -O3 -std=c++17
+LINUX_CFLAGS = -Wall -O3
+LINUX_CXXFLAGS = -Wall -O3 -std=c++17
 
 # Directory di inclusione
-INCLUDE_DIRS = -Iinclude
+LINUX_INCLUDE_DIRS = -Iinclude
 
 # Flag di collegamento
 LDFLAGS =
 
 # Nome dell'eseguibile
-TARGET = main
+LINUX_TARGET = $(LINUX_BINS)
 
 # File sorgente
-SRCS = src/serial.c src/plot.c src/utils.c main.c  # Aggiungi main.c qui
+LINUX_SRCS = $(LINUX_OBJS:.o=.c)
 
-# File oggetto
-OBJS = $(SRCS:.c=.o)
+# build
+.PHONY: build_linux
+build_linux: $(LINUX_TARGET)
 
 # Regola per compilare l'eseguibile
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS)
+$(LINUX_TARGET): $(LINUX_OBJS)
+	$(LINUX_CC) $(LINUX_OBJS) -o $(LINUX_TARGET) $(LDFLAGS)
 
 # Regola per compilare i file oggetto C
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
+%.o: %.c $(LINUX_HEADERS)
+	$(LINUX_CC) $(LINUX_CFLAGS) $(LINUX_INCLUDE_DIRS) -c $< -o $@
 
 # Regola per compilare i file oggetto C++
-%.o: %.cpp $(HEADERS)
-	$(CXX) $(CXXFLAGS) $(INCLUDE_DIRS) -c $< -o $@
+%.o: %.cpp $(LINUX_HEADERS)
+	$(LINUX_CXX) $(LINUX_CXXFLAGS) $(LINUX_INCLUDE_DIRS) -c $< -o $@
 
 # Regola per pulire i file generati
-.PHONY: clean
-clean:
-	rm -f $(OBJS) $(TARGET)
+.PHONY: clean_linux
+clean_linux:
+	rm -f $(LINUX_OBJS) $(LINUX_BINS) *~ *.o ./Linux/data.txt
 
 # Regola per eseguire il programma
 .PHONY: run
-run: $(TARGET)
-	./$(TARGET)
+run: $(LINUX_TARGET)
+	./$(LINUX_TARGET)
+
+all: clean_linux build_linux run

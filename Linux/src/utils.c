@@ -3,95 +3,133 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/select.h>
 #include <errno.h>
 #include "utils.h"
+#include "plot.h"
+#include "comm.h"
+#include "serial.h"
+#include <semaphore.h>
 
-const char *dirPath = "../data";
-const char *dataPath = "../data/data.txt";
-char msg[BUFFER_SIZE];
+const char *dirPath = "./";
+const char *dataPath = "data.txt";
+int pipefd[2];
+sem_t* sem;
+
+// global variables
+int fd;
+int fd_write;
+int fd_read;
+pid_t pid;
+char* device = "/dev/ttyUSB0";
+int baudrate = 9600;
+bool blocking = true;
+bool ready = false;
+int total_samples = 0;
+int gnuplot_pipe[2];
 
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Exiting...\n");
         close(fd);
+        close(fd_write);
+        sem_unlink(SEM_NAME);
+        kill(0, SIGKILL);
         exit(0);
     }
 }
 
-void manage_msg(char* new_msg) {
-    if (strncmp(new_msg, "GO",2) == 0) {
-        system("clear");
-        ready = true;
-    }
-    else if (strncmp(new_msg, "exit", 4) == 0) {
-        printf("paffogay\n");
-        sig_handler(SIGINT);
+int init(int argc, char* argv[]) {
+    system("clear");
+    // create and initialize the semaphore
+    sem = sem_open(SEM_NAME, O_CREAT, 0644, 0);
+    if (sem == SEM_FAILED) {
+        perror("sem_open");
+        return -1;
     }
 
-    if (ready) {
-        if (strncmp(new_msg, "CMD:", 4) == 0)
-            printf("%s\n", new_msg + 4);
-        else if (strncmp(new_msg, "DATA:", 5) == 0)
-            write(fd_write, new_msg + 5, strlen(new_msg) - 5);
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        return -1;
     }
-}
 
-void receive_msg(int fd) {
-    static int received = 0; // Keep track of the received bytes across calls
-    // Read data into the buffer
-    int n = read(fd, msg + received, sizeof(msg) - received - 1);
-    if (n > 0) {
-        received += n;
-        msg[received] = '\0'; // Ensure null-terminated string
-
-        // Process each line in the received message
-        char *line_start = msg;
-        char *newline_pos = strchr(line_start, '\n');
-        while (newline_pos != NULL) {
-            *newline_pos = '\0'; // Null-terminate the current line
-            manage_msg(line_start); // Process the complete line
-            // Move to the next line
-            line_start = newline_pos + 1;
-            newline_pos = strchr(line_start, '\n');
+    struct stat st = {0};
+    if (stat(dirPath, &st) == -1) {
+        if (mkdir(dirPath, 0700) != 0) {
+            perror("Errore nella creazione della directory");
+            return -1;
         }
-
-        // Move the remaining part of the message to the beginning of the buffer
-        received = strlen(line_start);
-        memmove(msg, line_start, received);
-        msg[received] = '\0'; // Ensure null-terminated string
     }
-}
 
-void send_msg() {
-    char cmd[256];
-    int n = 0;
-    if (fgets(cmd, sizeof(cmd), stdin) != NULL) {
-        if (strcmp(cmd, "exit\n") == 0) { // Adjusted to include newline
-            sig_handler(SIGINT);
+    // open the file for writing
+    fd_write = open(dataPath, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd_write == -1) {
+        perror("Error while opening the file for writing");
+        return -1;
+    }
+
+    // set the signal handler
+    struct sigaction sa;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_handler = sig_handler;
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
+    
+    // check the arguments
+    if (argc == 1) {
+        printf("\nUsing default values :\n\tdevice  \t: %s\n\tbaudrate\t: %d\n\tblocking\t: %s\n", device, baudrate, blocking ? "true" : "false");
+        printf("\nOtherwise use the format './main.o <device> <baudrate> [blocking]'\n");
+        printf("                                                        ^^^^^^^^\n");
+        printf("                                                        optional\n");
+    }
+    else { 
+        if (argc == 2) {
+            device = argv[1];
+        }
+        else if (argc == 3) {
+            device = argv[1];
+            baudrate = atoi(argv[2]);
+        }
+        else if (argc == 4){
+            device = argv[1];
+            baudrate = atoi(argv[2]);
+            blocking = ((strcmp(argv[3], "true") == 0) | (atoi(argv[3]) == 1)) ? true : false;
         } else {
-            // Send the command to the device
-            // manage partially sent commands
-            int sent  = 0;
-            while (sent < strlen(cmd)) {
-                n = write(fd, cmd + sent, strlen(cmd) - sent);
-                fflush(stdout);
-                if (n < 0) {
-                    perror("write error");
-                    return;
-                } else {
-                    sent += n;
-                }
-                if (DEBUG) printf("Command sent: %s", cmd); // Adjusted to include newline
-            }
+            printf("too many arguments\n");
+            return -1;
         }
+        printf("Using values :\n\tdevice  \t: %s\n\tbaudrate\t: %d\n\tblocking\t: %s\n", device, baudrate, blocking ? "true" : "false");
     }
+    printf("Do you want to start the oscilloscope with this attributes? [Y/n]\n");
+    char c = getchar();
+    //check condition
+    if (c != '\n' && c != 'y' && c != 'Y') {
+        //simulate sigint
+        sig_handler(SIGINT);
+    } 
+
+    // open the serial port
+    if (DEBUG) printf("-> Opening port \t: %s\n", device);
+    fd = open_port(device);
+
+    if (fd == -1) {
+        perror("Unable to open port");
+        return -1;
+    }
+
+    // set the attributes
+    if (DEBUG) printf(":-> Setting attributes \t: [baudrate = %d, blocking = %s]\n", baudrate, blocking ? "true" : "false");
+    if (set_attributes(fd, baudrate, 0, blocking) == -1) {
+        perror("Unable to set attributes");
+        return -1;
+    }
+    return 0;
 }
 
 void parent_fn() {
-    // clear the terminal
-    system("clear");
     fd_set readfds;
 
     while (1) {
@@ -113,11 +151,77 @@ void parent_fn() {
 
         // Check if there is input from the user
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
-            send_msg();
+            redirect_msg();
         }
     }
 }
 
 void child_fn() {
-    return;
+    // Wait for signal from the parent
+    sem = sem_open(SEM_NAME, 0);
+    if (sem == SEM_FAILED) {
+        perror("sem_open in child");
+        exit(EXIT_FAILURE);
+    }
+
+    // Create a pipe to communicate with gnuplot
+    if (pipe(gnuplot_pipe) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Child process: execute gnuplot
+        close(gnuplot_pipe[1]); // Close write end
+        dup2(gnuplot_pipe[0], STDIN_FILENO); // Redirect stdin to read end of the pipe
+        close(gnuplot_pipe[0]); // Close original read end after duplication
+        execlp("gnuplot", "gnuplot", NULL);
+        perror("Error while executing gnuplot");
+        exit(EXIT_FAILURE);
+    } else if (pid > 0) {
+        // Parent process: write commands to gnuplot
+        close(gnuplot_pipe[0]); // Close read end
+
+        FILE *gnuplot_fp = gnuplot_init(dataPath, "plot.gp", 0, 50);
+
+        while (1) {
+            sem_wait(sem);
+
+            // Count the number of samples
+            int total_samples = 0;
+            char ch;
+
+            FILE* fd_read = fopen("data.txt", "r");
+            if (fd_read == NULL) {
+                perror("Error opening data file");
+                exit(EXIT_FAILURE);
+            }
+
+            while ((ch = fgetc(fd_read)) != EOF) {
+                if (ch == '\n') {
+                    total_samples++;
+                }
+            }
+            fclose(fd_read);
+
+            // Calculate the display range
+            int start_sample = (total_samples > 50) ? (total_samples - 50) : 0;
+
+            if (total_samples > 1) {
+                fprintf(gnuplot_fp, "plot ");
+                for (int i = 1; i <= 8; i++) {
+                    fprintf(gnuplot_fp, "'data.txt' every ::%d::%d using ($0+1):%d with lines title 'Channel %d'", start_sample, total_samples, i, i);
+                    if (i < 8) {
+                        fprintf(gnuplot_fp, ", ");
+                    }
+                }
+                fprintf(gnuplot_fp, "\n");
+                fflush(gnuplot_fp);
+            }
+        }
+    } else {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
 }

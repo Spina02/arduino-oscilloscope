@@ -2,10 +2,54 @@
 
 This project is going to implement a simple oscilloscope using an Arduino Mega 2560. The oscilloscope samples up to 8 ADC channels and streams the data to a PC for visualization.
 
-## Features \[wip\]
+## Features
 
 - Timed sampling of up to 8 channels on the ADC
 - Configurable sampling frequency
 - Continuous sampling mode
 - Buffered sampling mode with trigger conditions
 - Asynchronous serial communication using UART interrupts
+
+## Components
+
+- Arduino Mega 2560
+- whatever sensor to test the oscilloscope (simple wires are also ok)
+
+## Project Structure
+
+- Arduino/: Contains the Arduino code for the oscilloscope.
+- PC/: Contains the PC client code for controlling the oscilloscope and visualizing the data.
+
+## prerequisites
+
+- linux
+```sh
+sudo apt-get install arduino arduino-mk gnuplot make
+```
+
+- arch
+```sh
+sudo pacman -S arduino gnuplot make
+```
+
+## usage
+The following command works boyh in main directory (`arduino_oscilloscope`) to compile both Arduino and Linux, and in the single directories (`Linux` or `Arduino`) to compile the single part of the project.
+
+- only compiling
+```sh
+make build
+```
+- only clean
+```sh
+make clean
+```
+
+- only run
+```sh
+make run
+```
+
+clean + build + run
+```sh
+make
+```
