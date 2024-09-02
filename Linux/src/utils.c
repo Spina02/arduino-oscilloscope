@@ -12,12 +12,10 @@
 #include "plot.h"
 #include "comm.h"
 #include "serial.h"
-#include <semaphore.h>
 
 const char *dirPath = "./";
 const char *dataPath = "data.txt";
 int pipefd[2];
-sem_t* sem;
 
 // global variables
 int fd;
@@ -30,37 +28,31 @@ bool blocking = true;
 bool ready = false;
 int total_samples = 0;
 int gnuplot_pipe[2];
+FILE* gnuplot_fp;
 
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Exiting...\n");
         close(fd);
         close(fd_write);
-        sem_unlink(SEM_NAME);
-        kill(0, SIGKILL);
         exit(0);
     }
 }
 
 int init(int argc, char* argv[]) {
     system("clear");
-    // create and initialize the semaphore
-    sem = sem_open(SEM_NAME, O_CREAT, 0644, 0);
-    if (sem == SEM_FAILED) {
-        perror("sem_open");
-        return -1;
-    }
 
-    if (pipe(pipefd) == -1) {
+    // Create a pipe to communicate with gnuplot
+    if (pipe(gnuplot_pipe) == -1) {
         perror("pipe");
-        return -1;
+        exit(EXIT_FAILURE);
     }
 
     struct stat st = {0};
     if (stat(dirPath, &st) == -1) {
         if (mkdir(dirPath, 0700) != 0) {
             perror("Errore nella creazione della directory");
-            return -1;
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -68,7 +60,7 @@ int init(int argc, char* argv[]) {
     fd_write = open(dataPath, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (fd_write == -1) {
         perror("Error while opening the file for writing");
-        return -1;
+        exit(EXIT_FAILURE);
     }
 
     // set the signal handler
@@ -99,7 +91,7 @@ int init(int argc, char* argv[]) {
             blocking = ((strcmp(argv[3], "true") == 0) | (atoi(argv[3]) == 1)) ? true : false;
         } else {
             printf("too many arguments\n");
-            return -1;
+            exit(EXIT_FAILURE);
         }
         printf("Using values :\n\tdevice  \t: %s\n\tbaudrate\t: %d\n\tblocking\t: %s\n", device, baudrate, blocking ? "true" : "false");
     }
@@ -117,20 +109,22 @@ int init(int argc, char* argv[]) {
 
     if (fd == -1) {
         perror("Unable to open port");
-        return -1;
+        exit(EXIT_FAILURE);
     }
 
     // set the attributes
     if (DEBUG) printf(":-> Setting attributes \t: [baudrate = %d, blocking = %s]\n", baudrate, blocking ? "true" : "false");
     if (set_attributes(fd, baudrate, 0, blocking) == -1) {
         perror("Unable to set attributes");
-        return -1;
+        exit(EXIT_FAILURE);
     }
     return 0;
 }
 
 void parent_fn() {
     fd_set readfds;
+    close(gnuplot_pipe[0]); // Close read end
+    gnuplot_fp = gnuplot_init(dataPath, "plot.gp", 0, 50);
 
     while (1) {
         FD_ZERO(&readfds);
@@ -157,71 +151,11 @@ void parent_fn() {
 }
 
 void child_fn() {
-    // Wait for signal from the parent
-    sem = sem_open(SEM_NAME, 0);
-    if (sem == SEM_FAILED) {
-        perror("sem_open in child");
-        exit(EXIT_FAILURE);
-    }
-
-    // Create a pipe to communicate with gnuplot
-    if (pipe(gnuplot_pipe) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
-    }
-
-    pid_t pid = fork();
-    if (pid == 0) {
-        // Child process: execute gnuplot
-        close(gnuplot_pipe[1]); // Close write end
-        dup2(gnuplot_pipe[0], STDIN_FILENO); // Redirect stdin to read end of the pipe
-        close(gnuplot_pipe[0]); // Close original read end after duplication
-        execlp("gnuplot", "gnuplot", NULL);
-        perror("Error while executing gnuplot");
-        exit(EXIT_FAILURE);
-    } else if (pid > 0) {
-        // Parent process: write commands to gnuplot
-        close(gnuplot_pipe[0]); // Close read end
-
-        FILE *gnuplot_fp = gnuplot_init(dataPath, "plot.gp", 0, 50);
-
-        while (1) {
-            sem_wait(sem);
-
-            // Count the number of samples
-            int total_samples = 0;
-            char ch;
-
-            FILE* fd_read = fopen("data.txt", "r");
-            if (fd_read == NULL) {
-                perror("Error opening data file");
-                exit(EXIT_FAILURE);
-            }
-
-            while ((ch = fgetc(fd_read)) != EOF) {
-                if (ch == '\n') {
-                    total_samples++;
-                }
-            }
-            fclose(fd_read);
-
-            // Calculate the display range
-            int start_sample = (total_samples > 50) ? (total_samples - 50) : 0;
-
-            if (total_samples > 1) {
-                fprintf(gnuplot_fp, "plot ");
-                for (int i = 1; i <= 8; i++) {
-                    fprintf(gnuplot_fp, "'data.txt' every ::%d::%d using ($0+1):%d with lines title 'Channel %d'", start_sample, total_samples, i, i);
-                    if (i < 8) {
-                        fprintf(gnuplot_fp, ", ");
-                    }
-                }
-                fprintf(gnuplot_fp, "\n");
-                fflush(gnuplot_fp);
-            }
-        }
-    } else {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
+    // execute gnuplot
+    close(gnuplot_pipe[1]); // Close write end
+    dup2(gnuplot_pipe[0], STDIN_FILENO); // Redirect stdin to read end of the pipe
+    close(gnuplot_pipe[0]); // Close original read end after duplication
+    execlp("gnuplot", "gnuplot", NULL);
+    perror("Error while executing gnuplot");
+    exit(EXIT_FAILURE);
 }

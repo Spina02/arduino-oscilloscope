@@ -40,7 +40,7 @@ AVRDUDE_FLAGS += -D -q -V -C /etc/avrdude.conf
 AVRDUDE_FLAGS += -c $(AVRDUDE_BOOTLOADER)
 
 .PHONY: build_avr
-build_avr: $(AVR_BINS)
+build_avr: $(AVR_BINS) main.hex
 
 #common objects
 %.o: %.c 

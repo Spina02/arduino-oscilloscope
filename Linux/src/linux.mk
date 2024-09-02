@@ -17,6 +17,8 @@ LINUX_TARGET = $(LINUX_BINS)
 # File sorgente
 LINUX_SRCS = $(LINUX_OBJS:.o=.c)
 
+all: clean_linux build_linux run
+
 # build
 .PHONY: build_linux
 build_linux: $(LINUX_TARGET)
@@ -36,11 +38,9 @@ $(LINUX_TARGET): $(LINUX_OBJS)
 # Regola per pulire i file generati
 .PHONY: clean_linux
 clean_linux:
-	rm -f $(LINUX_OBJS) $(LINUX_BINS) *~ *.o ./Linux/data.txt
+	rm -f $(LINUX_OBJS) $(LINUX_BINS) *~ *.o /Linux/data.txt
 
 # Regola per eseguire il programma
 .PHONY: run
-run: $(LINUX_TARGET)
-	./$(LINUX_TARGET)
-
-all: clean_linux build_linux run
+run: $(LINUX_TARGET) 
+	./$(LINUX_TARGET) $(ARGS)

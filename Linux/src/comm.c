@@ -7,39 +7,36 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <fcntl.h>
 
 char msg[MSG_SIZE];
 
 void manage_msg(char* new_msg) {
-    if (strncmp(new_msg, "GO",2) == 0) {
+    if (strncmp(new_msg, "DO",2) == 0) {
         system("clear");
         ready = true;
     }
-    else if (strncmp(new_msg, "exit", 4) == 0) {
-        sig_handler(SIGINT);
-    }
 
     if (ready) {
-        if (strncmp(new_msg, "CMD:", 4) == 0)
+        if (strncmp(new_msg, "CMD_", 4) == 0)
             printf("%s\n", new_msg + 4);
 
-        else if (strncmp(new_msg, "DATA:", 5) == 0) {
-            sem = sem_open(SEM_NAME, O_CREAT, 0644, 0);
-            if (sem == SEM_FAILED) {
-                perror("sem_open in parent");
-                exit(EXIT_FAILURE);
-            }
+        else if (strncmp(new_msg, "DATA", 4) == 0) {
             
             // remove the newline character
             if (new_msg[strlen(new_msg) - 1] == '\r') {
                 new_msg[strlen(new_msg) - 1] = '\n';
             }
-            write(fd_write, new_msg + 5, strlen(new_msg) - 5);
+            write(fd_write, new_msg + 4, strlen(new_msg) - 4);
             total_samples++;
-            // send the signal to the child process
-            sem_post(sem);
+        
+            // Write to gnuplot_fp
+            int start_sample = (total_samples > 100) ? (total_samples - 100) : 0;
+            fprintf(gnuplot_fp, "plot ");
+            for (int i = 1; i <= 8; i++) {
+                fprintf(gnuplot_fp, "'data.txt' every ::%d::%d using ($0+1):%d with lines title 'Channel %d'%s", start_sample, total_samples, i, i, i<8 ? ", " : "\n");
+            }
+            fflush(gnuplot_fp);
         }
     }
 }

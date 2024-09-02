@@ -44,7 +44,8 @@ int set_attributes(int fd, int speed, int parity, bool blocking) {
     }
     // if not valid, return -1
     if (i == 7) {
-        perror("Invalid speed\n");
+        printf("Invalid speed\n");
+        printf("Valid speeds are: 115200, 57600, 38400, 19200, 9600, 4800, 2400\n");
         return -1;
     }
 

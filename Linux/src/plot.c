@@ -15,14 +15,16 @@ FILE* gnuplot_init(const char* data_file, const char *script_file, int start_sam
         perror("fdopen");
         exit(EXIT_FAILURE);
     }
-
-    fprintf(gnuplot_fp, "set terminal x11\n");
-    fprintf(gnuplot_fp, "set title 'Real-time Signal'\n");
+    
+    fprintf(gnuplot_fp, "set terminal x11 size 1500, 500 font 'Helvetica,12'\n");
+    fprintf(gnuplot_fp, "set title 'Oscilloscope'\n");
     fprintf(gnuplot_fp, "set xlabel 'samples'\n");
     fprintf(gnuplot_fp, "set ylabel 'value'\n");
     fprintf(gnuplot_fp, "set yrange [-5:260]\n");
     fprintf(gnuplot_fp, "set grid\n");
     fprintf(gnuplot_fp, "set style data lines\n");
-
+    fprintf(gnuplot_fp, "set style line 1 linewidth 2\n"); // Increase line thickness
+    fprintf(gnuplot_fp, "set raise no\n");      // Prevent window from always being on top
+    
     return gnuplot_fp;
 }

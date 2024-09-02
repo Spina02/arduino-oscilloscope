@@ -18,38 +18,58 @@ This project is going to implement a simple oscilloscope using an Arduino Mega 2
 ## Project Structure
 
 - Arduino/: Contains the Arduino code for the oscilloscope.
-- PC/: Contains the PC client code for controlling the oscilloscope and visualizing the data.
+- Linux/: Contains the PC client code for controlling the oscilloscope and visualizing the data.
 
 ## prerequisites
 
 - linux
-```sh
-sudo apt-get install arduino arduino-mk gnuplot make
-```
+
+    ```sh
+    sudo apt-get install arduino arduino-mk gnuplot make
+    ```
 
 - arch
-```sh
-sudo pacman -S arduino gnuplot make
-```
 
-## usage
+    ```sh
+    sudo pacman -S arduino gnuplot make
+    ```
+
+## Compilation
+
 The following command works boyh in main directory (`arduino_oscilloscope`) to compile both Arduino and Linux, and in the single directories (`Linux` or `Arduino`) to compile the single part of the project.
 
 - only compiling
-```sh
-make build
-```
+
+    ```sh
+    make build
+    ```
 - only clean
-```sh
-make clean
-```
 
-- only run
-```sh
-make run
-```
+    ```sh
+    make clean
+    ```
 
-clean + build + run
-```sh
-make
-```
+- clean + build + run
+
+    ```sh
+    make
+    ```
+
+## Runing the code
+
+- run with default values:
+
+    ```sh
+    make run
+    ```
+
+- run with certain values:
+
+    ```sh
+    make run <device> <baudrate> [blocking]
+    ```
+
+    default vaules are 
+    - device:   /dev/ttyUSB0
+    - baudrate: 9600
+    - blocking: true

@@ -14,5 +14,11 @@ clean:
 	$(MAKE) -C Linux clean
 	$(MAKE) -C Arduino clean
 
+ARGS="$(filter-out $@,$(MAKECMDGOALS))"
+
 run:
-	$(MAKE) -C Linux run
+	$(MAKE) -C Linux run ARGS=$(ARGS)
+
+# Prevent make from interpreting the arguments as targets
+%:
+    @:

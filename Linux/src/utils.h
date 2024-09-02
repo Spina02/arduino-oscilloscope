@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <semaphore.h>
+#include <stdio.h>
 
 #define DEBUG false
 #define SEM_NAME "gnuplot_sem"
@@ -13,11 +14,11 @@ extern bool ready;
 extern int baudrate;
 extern int fd;
 extern int fd_write;
-extern int gnuplot_pipe[2];
+extern int gnuplot_pipe[2]; //?
 extern const char *dirPath;
 extern const char *dataPath;
-extern sem_t* sem;
 extern int total_samples;
+extern FILE* gnuplot_fp;
 
 // Signal handler
 void sig_handler(int signo);
