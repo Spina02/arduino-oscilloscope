@@ -16,7 +16,7 @@ FILE* gnuplot_init(const char* data_file, const char *script_file, int start_sam
         exit(EXIT_FAILURE);
     }
     
-    fprintf(gnuplot_fp, "set terminal x11 size 1500, 500 font 'Helvetica,12'\n");
+    fprintf(gnuplot_fp, "set terminal qt size 1500, 500 font 'Helvetica,12'\n");
     fprintf(gnuplot_fp, "set title 'Oscilloscope'\n");
     fprintf(gnuplot_fp, "set xlabel 'samples'\n");
     fprintf(gnuplot_fp, "set ylabel 'value'\n");

@@ -116,10 +116,10 @@ int process_command(char command) {
     else if (command == 'f') {
         printf("CMD_Enter frequency (Hz): \n");
         freq = atoi(usart_getstring());
-        freq = timer1_init(freq);
-        if (freq > 0)
+        if (timer1_init(freq) > 0)
             printf("CMD_Sampling frequency set to %d Hz\n", freq);
-        
+        else
+            printf("CMD_Error setting frequency\n");  
     } 
     else if (command == 'c') {
         printf("CMD_Enter channel: (e.g. 00000011 for channels 0 and 1)\n");
@@ -166,7 +166,6 @@ int process_command(char command) {
     } 
     else {
         printf("CMD_Unknown command: %c\n", command);
-        return -1;
     }
     interrupts &= ~(1 << RXINT);
     return 0;
