@@ -33,8 +33,19 @@ FILE* gnuplot_fp;
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Exiting...\n");
-        close(fd);
+        // close the serial port
         close(fd_write);
+        // signal the avr to stop sending data
+        char c = 'q';
+        write(fd, &c, 1);
+        // close the serial port
+        close(fd);
+        // close the pipe
+        close(gnuplot_pipe[1]);
+        // close the gnuplot file
+        if (gnuplot_fp) fclose(gnuplot_fp);
+        // remove the data file
+        //remove(dataPath);
         exit(0);
     }
 }

@@ -12,31 +12,40 @@
 char msg[MSG_SIZE];
 
 void manage_msg(char* new_msg) {
-    if (strncmp(new_msg, "DO",2) == 0) {
+    char* tag = malloc(5);
+    tag = strncpy(tag, new_msg, 4);
+
+    if (strcmp(tag, "DONE") == 0) {
         system("clear");
         ready = true;
     }
 
     if (ready) {
-        if (strncmp(new_msg, "CMD_", 4) == 0)
+        if (strcmp(tag, "CMD_") == 0)
             printf("%s\n", new_msg + 4);
 
-        else if (strncmp(new_msg, "DATA", 4) == 0) {
+        else if (strcmp(tag, "DATA") == 0) {
             
             // remove the newline character
             if (new_msg[strlen(new_msg) - 1] == '\r') {
                 new_msg[strlen(new_msg) - 1] = '\n';
             }
-            write(fd_write, new_msg + 4, strlen(new_msg) - 4);
-            total_samples++;
-        
-            // Write to gnuplot_fp
-            int start_sample = (total_samples > 100) ? (total_samples - 100) : 0;
-            fprintf(gnuplot_fp, "plot ");
-            for (int i = 1; i <= 8; i++) {
-                fprintf(gnuplot_fp, "'data.txt' every ::%d::%d using ($0+1):%d with lines title 'Channel %d'%s", start_sample, total_samples, i, i, i<8 ? ", " : "\n");
+            
+            if (write(fd_write, new_msg + 4, strlen(new_msg) - 4) < 0) {
+                perror("write error");
+                return;
             }
-            fflush(gnuplot_fp);
+            
+            total_samples++;
+            int start_sample = (total_samples > 100) ? (total_samples - 100) : 0;
+            
+            if (total_samples > 1) { // Controlla che ci siano dati da plottare
+                fprintf(gnuplot_fp, "plot ");
+                for (int i = 1; i <= 8; i++) {
+                    fprintf(gnuplot_fp, "'data.txt' every ::%d::%d using ($0+1):%d with lines title 'Channel %d'%s", start_sample, total_samples, i, i, i < 8 ? ", " : "\n");
+                }
+                fflush(gnuplot_fp);
+            }
         }
     }
 }

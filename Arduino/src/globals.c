@@ -1,22 +1,2 @@
 #include "globals.h"
 
-// oscilloscope
-uint16_t freq = 100;            // default frequency
-char interrupts = 0;            // 0b00000000
-char channels = 0b11111111;     // shift register for channels (default channel 0)
-char mode = 'c';                // default mode
-bool wait_for_trigger = false;  // default trigger
-bool trigger = false;           // trigger flag
-
-// buffer
-uint8_t idx = 0;                                    // index for the buffer
-unsigned char buffer[BUFFER_SIZE][CHANNELS] = {0};  // buffer for the samples
-uint8_t curr_samples[CHANNELS] = {0};               // current samples
-uint8_t last_samples[CHANNELS] = {0};               // last samples
-
-// genral
-bool running = false;         // running flag
-bool first_iter = true;
-
-int data_size = CHANNELS*(6*sizeof(char)+1)+6; // 6 chars for "DATA:" and 1 for null terminator
-char* data = 0;             // data buffer

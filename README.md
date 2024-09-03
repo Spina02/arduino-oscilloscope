@@ -13,19 +13,19 @@ This project is going to implement a simple oscilloscope using an Arduino Mega 2
 ## Components
 
 - Arduino Mega 2560
-- whatever sensor to test the oscilloscope (simple wires are also ok)
+- Whatever sensor to test the oscilloscope (simple wires are also ok)
 
 ## Project Structure
 
 - Arduino/: Contains the Arduino code for the oscilloscope.
 - Linux/: Contains the PC client code for controlling the oscilloscope and visualizing the data.
 
-## prerequisites
+## Prerequisites
 
 - linux
 
     ```sh
-    sudo apt-get install arduino arduino-mk gnuplot make
+    sudo apt-get install arduino gnuplot make
     ```
 
 - arch
@@ -36,40 +36,46 @@ This project is going to implement a simple oscilloscope using an Arduino Mega 2
 
 ## Compilation
 
-The following command works boyh in main directory (`arduino_oscilloscope`) to compile both Arduino and Linux, and in the single directories (`Linux` or `Arduino`) to compile the single part of the project.
+The following command works both in main directory (`arduino_oscilloscope`) to compile both Arduino and Linux, and in the single directories (`Linux` or `Arduino`) to compile the single part of the project.
 
-- only compiling
+- Compilation only
 
     ```sh
     make build
     ```
-- only clean
+- Clean only
 
     ```sh
     make clean
     ```
 
-- clean + build + run
+- Clean + Build + Run
 
     ```sh
     make
     ```
 
-## Runing the code
+## Running the code
 
-- run with default values:
+- Run with default attributes:
 
     ```sh
     make run
     ```
 
-- run with certain values:
+    or just:
+
+    ```sh
+    make // clean + build + run
+    ```    
+
+    Default attributes are:
+    - device:   /dev/ttyUSB0
+    - baudrate: 9600
+    - blocking: true
+
+- Run with specific attributes:
 
     ```sh
     make run <device> <baudrate> [blocking]
     ```
-
-    default vaules are 
-    - device:   /dev/ttyUSB0
-    - baudrate: 9600
-    - blocking: true

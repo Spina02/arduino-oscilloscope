@@ -21,3 +21,8 @@ uint16_t adc_read(uint8_t channel) {
     // Return the result (8-bit left adjusted)
     return ADCH;
 }
+
+void adc_close() {
+    // Disable the ADC
+    ADCSRA &= ~(1 << ADEN);
+}

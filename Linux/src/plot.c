@@ -23,8 +23,7 @@ FILE* gnuplot_init(const char* data_file, const char *script_file, int start_sam
     fprintf(gnuplot_fp, "set yrange [-5:260]\n");
     fprintf(gnuplot_fp, "set grid\n");
     fprintf(gnuplot_fp, "set style data lines\n");
-    fprintf(gnuplot_fp, "set style line 1 linewidth 2\n"); // Increase line thickness
-    fprintf(gnuplot_fp, "set raise no\n");      // Prevent window from always being on top
+    fprintf(gnuplot_fp, "set style line 1 linewidth 3\n");
     
     return gnuplot_fp;
 }
