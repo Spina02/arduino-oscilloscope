@@ -13,7 +13,7 @@
 #include <util/delay.h>
 
 // oscilloscope
-uint16_t freq = 100;            // default frequency
+uint16_t freq = 100;           // default frequency
 char interrupts = 0;            // 0b00000000
 char channels = 0b11111111;     // shift register for channels (default channel 0)
 char mode = 'c';                // default mode
@@ -54,15 +54,14 @@ int main(int argc, char** argv) {
         // Check if there are any interrupts to handle
         if (interrupts & (1 << RXINT)) {
             if (process_command(usart_getchar())<0) 
-                continue;
+                return 0;
         } else if (interrupts & (1 << TIMINT)) {
-            int res = handle_timer_interrupt();
-            if (res<0) continue;
+            if (handle_timer_interrupt()<0)
+                return 0;
         } else {
             // Enter sleep mode if no interrupts
             set_sleep_mode(SLEEP_MODE_IDLE);
             sleep_mode();
         }
-        //_delay_ms(50); // delay for readability
     }
 }

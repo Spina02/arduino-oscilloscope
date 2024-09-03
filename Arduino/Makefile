@@ -7,7 +7,6 @@ AVR_OBJS=./src/uart.o
 AVR_OBJS+=./src/adc.o
 AVR_OBJS+=./src/buffer.o
 AVR_OBJS+=./src/utils.o
-AVR_OBJS+=./src/globals.o
 AVR_OBJS+=./main.o
 
 # put here the additional header files needed for compilation

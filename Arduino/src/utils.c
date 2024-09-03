@@ -3,9 +3,7 @@
 #include "adc.h"
 #include "buffer.h"
 #include "uart.h"
-
 #include <avr/interrupt.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,8 +14,11 @@ bool is_triggered(uint8_t* curr_samples, uint8_t* last_samples, uint8_t channels
     for (int i = 0; i < CHANNELS; i++) {
         if (channels & (1 << i)) { // if the channel is active
             uint8_t diff = abs(curr_samples[i] - last_samples[i]);
+            last_samples[i] = curr_samples[i];
+            curr_samples[i] = adc_read(i);
+            diff = abs(curr_samples[i] - last_samples[i]);
             if (running && diff > TRIGGER_THRESHOLD) {
-                printf("Triggered on channel %d\n", i);
+                printf("CMD_Triggered on channel %d\n", i);
                 return true;
             }
         }
@@ -26,7 +27,7 @@ bool is_triggered(uint8_t* curr_samples, uint8_t* last_samples, uint8_t channels
     first_iter = true;
 }
 
-void timer1_init(uint16_t freq) {
+int timer1_init(uint16_t freq) {
     cli();
     // set prescaler to 8
     int prescaler = 1024;
@@ -34,10 +35,10 @@ void timer1_init(uint16_t freq) {
     uint16_t ocr_value = (F_CPU/prescaler/freq)-1;
     if (ocr_value < 1) {
         printf("CMD_Error: Frequency too high\n");
-        return;
+        return -1;
     } else if (ocr_value > UINT16_MAX) {
         printf("CMD_Error: Frequency too low\n");
-        return;
+        return -1;
     }
 
     // Reset Timer1 Control Register A and B
@@ -55,12 +56,14 @@ void timer1_init(uint16_t freq) {
     TIMSK1 |= (1 << OCIE1A);
 
     sei();
+    return OCR1A;
 }
 
 int initialize_system(uint16_t freq) {
     adc_init();
     printf_init();
-    timer1_init(freq);
+    if (timer1_init(freq)<0) 
+        return -1;
     // initialize the samples with the first read
     for (int i = 0; i < CHANNELS; i++) {
         curr_samples[i] = adc_read(i);
@@ -112,10 +115,11 @@ int process_command(char command) {
     }
     else if (command == 'f') {
         printf("CMD_Enter frequency (Hz): \n");
-        //char* c_freq = usart_getstring();
-        freq = atoi(usart_getstring());//c_freq);
-        printf("CMD_Sampling frequency set to %d Hz\n", freq);
-        timer1_init(freq);
+        freq = atoi(usart_getstring());
+        freq = timer1_init(freq);
+        if (freq > 0)
+            printf("CMD_Sampling frequency set to %d Hz\n", freq);
+        
     } 
     else if (command == 'c') {
         printf("CMD_Enter channel: (e.g. 00000011 for channels 0 and 1)\n");
@@ -140,9 +144,24 @@ int process_command(char command) {
         if (mode == 'c') trigger = false;
     } 
     else if (command == 't') {
-        trigger = !trigger;
-        wait_for_trigger = !wait_for_trigger;
-        printf("CMD_%s trigger mode\n\n", trigger ? "Enabled" : "Disabled");
+        if (running) {
+            if (trigger) {
+                wait_for_trigger = !wait_for_trigger;
+            } 
+            else {
+                trigger = true;
+                wait_for_trigger = trigger;
+                printf("CMD_Trigger mode Enabled\n");
+            }
+            if (wait_for_trigger) {
+                printf("CMD_Waiting for trigger\n");
+            }
+        }
+        else {
+            trigger = !trigger;
+            wait_for_trigger = trigger;
+            printf("CMD_Trigger mode %s\n", wait_for_trigger ? "Enabled" : "Disabled");
+        }
         first_iter = true;
     } 
     else {
@@ -154,42 +173,35 @@ int process_command(char command) {
 }
 
 int handle_timer_interrupt() {
-    if (running && trigger && wait_for_trigger) {
-        interrupts &= ~(1 << TIMINT);
-        if (running) {
-            if (first_iter) printf("CMD_Waiting for Trigger\n");
-            first_iter = false;
+    if (running) {
+        if (wait_for_trigger) {
+            wait_for_trigger = !is_triggered(curr_samples, last_samples, channels);
         }
-        for (int i = 0; i < CHANNELS; i++) {
-            if (channels & (1 << i)) {
-                last_samples[i] = curr_samples[i];
-                curr_samples[i] = adc_read(i);
-            }
-        }
-        wait_for_trigger = !is_triggered(curr_samples, last_samples, channels);
-        return -1;
-    }
-    if (running && (mode == 'c')) {
-        strcpy(data, "DATA");
-        for (int i = 0; i < CHANNELS; i++) {
-            char temp[20]; // Temporary buffer for each sample string
-            if (channels & (1 << i)) {
-                curr_samples[i] = adc_read(i);
-                snprintf(temp, sizeof(temp), "%d ", curr_samples[i]);
+        if (!wait_for_trigger) {
+            if (mode == 'c') {
+                strcpy(data, "DATA");
+                for (int i = 0; i < CHANNELS; i++) {
+                    char temp[20]; // Temporary buffer for each sample string
+                    if (channels & (1 << i)) {
+                        curr_samples[i] = adc_read(i);
+                        snprintf(temp, sizeof(temp), "%d ", curr_samples[i]);
+                    } else {
+                        snprintf(temp, sizeof(temp), "-1 ");
+                    }
+                    strncat(data, temp, data_size - strlen(data) - 1);
+                }
+                printf("%s\n", data);
+                free(data);
             } else {
-                snprintf(temp, sizeof(temp), "-1 ");
-            }
-            strncat(data, temp, data_size - strlen(data) - 1);
-        }
-        printf("%s\n", data);
-        free(data);
-    } else if (running && (mode == 'b')) {
-        for (int i = 0; i < CHANNELS; i++) {
-            if (channels & (1 << i)) {
-                curr_samples[i] = adc_read(i);
+                for (int i = 0; i < CHANNELS; i++) {
+                    if (channels & (1 << i)) {
+                        curr_samples[i] = adc_read(i);
+                    }
+                }
+                add_buf(curr_samples);
             }
         }
-        add_buf(curr_samples);
     }
+    interrupts &= ~(1 << TIMINT);
     return 0;
 }

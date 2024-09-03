@@ -37,12 +37,12 @@ void manage_msg(char* new_msg) {
             }
             
             total_samples++;
-            int start_sample = (total_samples > 100) ? (total_samples - 100) : 0;
+            int start_sample = (total_samples > 50) ? (total_samples - 50) : 0;
             
             if (total_samples > 1) { // Controlla che ci siano dati da plottare
                 fprintf(gnuplot_fp, "plot ");
                 for (int i = 1; i <= 8; i++) {
-                    fprintf(gnuplot_fp, "'data.txt' every ::%d::%d using ($0+1):%d with lines title 'Channel %d'%s", start_sample, total_samples, i, i, i < 8 ? ", " : "\n");
+                    fprintf(gnuplot_fp, "'data.txt' every ::%d::%d using ($0):%d with lines title 'Channel %d'%s", start_sample, total_samples, i, i, i < 8 ? ", " : "\n");
                 }
                 fflush(gnuplot_fp);
             }

@@ -10,3 +10,7 @@ int process_command(char command);
 
 // handle the timer interrupt
 int handle_timer_interrupt();
+
+bool is_triggered(uint8_t* curr_samples, uint8_t* last_samples, uint8_t channels);
+
+int timer1_init(uint16_t freq);
